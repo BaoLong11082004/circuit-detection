@@ -4,7 +4,7 @@ from PIL import Image
 import json
 
 # Load model
-model = YOLO("best.pt")
+model = YOLO("curuit_board.pt")
 
 st.title("🔌 Circuit Component Detection")
 
