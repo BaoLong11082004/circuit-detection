@@ -1,35 +1,50 @@
 import streamlit as st
 from ultralytics import YOLO
 from PIL import Image
-import json
+import numpy as np
 
-# Load model
-model = YOLO("curuit_board.pt")
+st.set_page_config(page_title="Circuit Detection", layout="centered")
 
 st.title("🔌 Circuit Component Detection")
 
-uploaded_file = st.file_uploader("Upload Image", type=["jpg", "png", "jpeg"])
+# Load model (cache cho nhanh)
+@st.cache_resource
+def load_model():
+    return YOLO("curuit_board.pt")
+
+model = load_model()
+
+uploaded_file = st.file_uploader("📤 Upload Image", type=["jpg", "png", "jpeg"])
 
 if uploaded_file:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Input Image")
+    image = Image.open(uploaded_file).convert("RGB")
+    img_array = np.array(image)
 
-    results = model.predict(image, conf=0.25, iou=0.7)
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.image(image, caption="📷 Input", use_column_width=True)
+
+    # Predict
+    results = model.predict(img_array, conf=0.25, iou=0.7)
 
     result_img = results[0].plot()
-    st.image(result_img, caption="Detected")
+
+    with col2:
+        st.image(result_img, caption="🎯 Detected", use_column_width=True)
 
     boxes = results[0].boxes
     total = len(boxes)
 
-    st.write(f"### 🔢 Total: {total}")
+    st.markdown(f"## 🔢 Total Components: `{total}`")
 
     names = model.names
     class_counts = {}
 
-    for cls in boxes.cls:
-        name = names[int(cls)]
-        class_counts[name] = class_counts.get(name, 0) + 1
+    if boxes is not None:
+        for cls in boxes.cls:
+            name = names[int(cls)]
+            class_counts[name] = class_counts.get(name, 0) + 1
 
-    st.write("### 📊 Details")
+    st.markdown("## 📊 Component Details")
     st.json(class_counts)
